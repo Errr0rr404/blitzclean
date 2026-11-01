@@ -98,10 +98,18 @@ struct MemoryControlView: View {
 
   private var summaryCard: some View {
     VStack(spacing: 16) {
-      HStack(alignment: .firstTextBaseline, spacing: 8) {
-        Text(ByteText.full(monitor.snapshot.ramUsed)).font(BlitzUI.valueFont).monospacedDigit()
-        Text("of \(ByteText.full(monitor.snapshot.ramTotal)) used")
-          .foregroundStyle(BlitzUI.secondaryText).font(BlitzType.body)
+      HStack(alignment: .center, spacing: 12) {
+        UsageDial(
+          ratio: monitor.snapshot.ramTotal > 0 ? monitor.snapshot.ramUsedRatio : nil,
+          tone: model.pressure == .critical
+            ? .critical : model.pressure == .warning ? .warning : .good,
+          size: 44)
+        VStack(alignment: .leading, spacing: 2) {
+          Text("Memory").font(BlitzType.rowTitle)
+          Text(ByteText.full(monitor.snapshot.ramUsed)).font(BlitzUI.valueFont).monospacedDigit()
+          Text("of \(ByteText.full(monitor.snapshot.ramTotal)) used")
+            .foregroundStyle(BlitzUI.secondaryText).font(BlitzType.caption)
+        }
         Spacer()
         HistoryRangePicker(seconds: $seconds)
       }

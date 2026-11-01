@@ -47,6 +47,7 @@ Settings > Finish setup lists the permissions that are still missing. No page as
   Full Disk Access may be needed to inspect more protected macOS data, and does not bypass every system restriction.
 - Accessibility enables window-response checks; no window text is logged for recovery.
 - Local HTTP probes identify listening ports and can cause a development server to serve or compile a page.
+  They use `127.0.0.1` only. Redirects and icons must stay on that same port, and probes do not use an HTTP proxy.
 - Opening a port launches its local address in your browser.
 - Package tools, saved server commands, Docker, and external cleanup tools follow their own network/permission behavior.
 - FFmpeg/FFprobe are optional local installations, not bundled downloads.

@@ -60,8 +60,8 @@ struct LargeFileReviewView: View {
             onBrowseFolders: onBrowseFolders)
           filterControls
           if let error = model.reviewPersistenceError {
-            Label(error, systemImage: "exclamationmark.triangle").font(.callout).foregroundStyle(
-              .orange)
+            Label(error, systemImage: "exclamationmark.triangle").font(BlitzType.callout)
+              .foregroundStyle(BlitzUI.warning)
           }
           scanProgress
           if let status = result ?? media.status ?? model.scanStatus {

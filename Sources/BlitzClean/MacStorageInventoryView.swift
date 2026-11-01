@@ -82,7 +82,7 @@ struct MacStorageInventoryView: View {
         }
         inventorySections(sections.filter { !$0.isDeveloper })
         if !developer.isEmpty {
-          Text("Developer data").font(BlitzType.section).foregroundStyle(BlitzUI.secondaryText)
+          BlitzUI.sectionLabel("Developer data")
             .padding(.top, 8)
           inventorySections(developer)
         }

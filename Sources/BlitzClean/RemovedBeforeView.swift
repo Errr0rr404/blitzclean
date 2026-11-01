@@ -131,7 +131,7 @@ extension [RemovedEntry] {
         ? "Prune the pnpm store?" : "Remove \(first?.target.title ?? "folder") again?")
       : "Remove \(count) folders again?"
     var notes = [
-      "About \(ByteText.full(bytes)). Each folder is checked again for running builds first."
+      "About \(ByteText.full(bytes)). Each folder is checked again for running builds, open files, and tracked files."
     ]
     if count <= 4 { notes.insert(map(\.target.path).joined(separator: "\n"), at: 0) }
     if dependencies { notes.append("Dependencies need a reinstall before the next run.") }

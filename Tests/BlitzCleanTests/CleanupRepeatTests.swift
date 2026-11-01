@@ -4,6 +4,62 @@ import Testing
 @testable import BlitzClean
 
 struct CleanupRepeatTests {
+  @Test func repeatReviewKeepsLinksTrackedFilesAndOpenFiles() throws {
+    let root = try canonicalTemporaryDirectory("repeat-safety")
+    defer { try? FileManager.default.removeItem(at: root) }
+    let folder = root.appendingPathComponent(".next")
+    try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    let file = folder.appendingPathComponent("data")
+    try Data(repeating: 42, count: 4_096).write(to: file)
+    #expect(try RegrowCleaner.folderTree(folder.path).bytes > 0)
+    try FileManager.default.createSymbolicLink(
+      at: folder.appendingPathComponent("link"), withDestinationURL: file)
+    #expect(throws: RegrowCleanError.linked) { try RegrowCleaner.folderTree(folder.path) }
+    #expect(FileManager.default.contents(atPath: file.path)?.count == 4_096)
+    try FileManager.default.removeItem(at: folder.appendingPathComponent("link"))
+
+    #expect(DeveloperCommand.git(.init(directory: root.path, arguments: ["init"])).status == 0)
+    #expect(
+      DeveloperCommand.git(.init(directory: root.path, arguments: ["add", ".next/data"])).status
+        == 0)
+    #expect(
+      throws: RegrowCleanError.busy("Folder contains tracked files or Git could not verify them")
+    ) {
+      try RegrowCleaner.folderTree(folder.path)
+    }
+    #expect(FileManager.default.contents(atPath: file.path)?.count == 4_096)
+  }
+
+  @Test func repeatReviewRejectsOpenFilesAndUnownedDependencies() throws {
+    let root = try canonicalTemporaryDirectory("repeat-open")
+    defer { try? FileManager.default.removeItem(at: root) }
+    let folder = root.appendingPathComponent(".next")
+    try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    let file = folder.appendingPathComponent("cache")
+    try Data(repeating: 42, count: 4_096).write(to: file)
+    let handle = try FileHandle(forReadingFrom: file)
+    defer { try? handle.close() }
+    #expect(throws: RegrowCleanError.busy("A file in this folder is open")) {
+      try RegrowCleaner.folderTree(folder.path)
+    }
+    #expect(FileManager.default.contents(atPath: file.path)?.count == 4_096)
+
+    let modules = root.appendingPathComponent("app/node_modules")
+    try FileManager.default.createDirectory(at: modules, withIntermediateDirectories: true)
+    let target = try #require(RegrowCatalog.target(for: modules.path, home: root.path))
+    #expect(throws: RegrowCleanError.busy("Dependencies need a project and a lockfile")) {
+      try RegrowCleaner.reviewDependencies(target)
+    }
+    #expect(FileManager.default.fileExists(atPath: modules.path))
+  }
+
+  private func canonicalTemporaryDirectory(_ name: String) throws -> URL {
+    let scratch = FileManager.default.temporaryDirectory.appendingPathComponent(
+      "\(name)-\(UUID().uuidString)")
+    try FileManager.default.createDirectory(at: scratch, withIntermediateDirectories: true)
+    return URL(fileURLWithPath: try #require(ReviewFile.canonicalPath(scratch.path)))
+  }
+
   private let home = "/Users/me"
 
   @Test

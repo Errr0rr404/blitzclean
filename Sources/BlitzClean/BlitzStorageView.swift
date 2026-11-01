@@ -35,7 +35,7 @@ struct BlitzStorageView: View {
         if !showsLargestFiles {
           HStack(spacing: 12) {
             ScrollView(.horizontal, showsIndicators: false) {
-              HStack(spacing: 2) {
+              HStack(spacing: 4) {
                 ForEach(drives) { drive in
                   BlitzChip(
                     title: drive.name,
@@ -79,13 +79,15 @@ private struct StorageCapacityMeter: View {
   let snapshot: SystemSnapshot
 
   var body: some View {
-    VStack(alignment: .trailing, spacing: 6) {
-      HStack(alignment: .firstTextBaseline, spacing: 4) {
-        Text(ByteText.compact(snapshot.diskAvailable)).font(BlitzType.label)
+    HStack(spacing: 8) {
+      UsageDial(
+        ratio: snapshot.diskTotal > 0 ? snapshot.diskUsedRatio : nil,
+        tone: MenuBarTones.disk(snapshot), size: 32)
+      VStack(alignment: .trailing, spacing: 2) {
+        Text(ByteText.compact(snapshot.diskAvailable)).font(BlitzType.label).monospacedDigit()
         Text("free of \(ByteText.compact(snapshot.diskTotal))").font(BlitzType.caption)
-          .foregroundStyle(BlitzUI.secondaryText)
-      }.monospacedDigit().lineLimit(1)
-      CapacityBar(usedRatio: snapshot.diskUsedRatio, tone: MenuBarTones.disk(snapshot))
+          .foregroundStyle(BlitzUI.secondaryText).lineLimit(1)
+      }
     }.accessibilityElement(children: .combine)
   }
 }

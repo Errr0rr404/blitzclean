@@ -4,6 +4,38 @@ import Testing
 @testable import BlitzClean
 
 struct DockerStorageTests {
+  @Test func rejectsRemoteAndMalformedDockerEndpoints() throws {
+    #expect(
+      try DockerLocalEndpoint.validate("unix:///var/run/docker.sock")
+        == "unix:///var/run/docker.sock")
+    #expect(
+      try DockerLocalEndpoint.validate("unix:///Users/me/.docker/run/docker.sock")
+        == "unix:///Users/me/.docker/run/docker.sock")
+    for host in [
+      "ssh://production", "tcp://127.0.0.1:2375", "https://docker.example.com",
+      "unix://remote/socket", "unix:///", "unix:///socket?other=host",
+      "unix:///var/../run/docker.sock",
+    ] {
+      #expect(throws: DockerStorageError.self) { try DockerLocalEndpoint.validate(host) }
+    }
+    #expect(throws: DockerStorageError.self) { try DockerLocalEndpoint.parse("[]") }
+    #expect(throws: DockerStorageError.self) { try DockerLocalEndpoint.parse("not JSON") }
+    #expect(
+      try DockerLocalEndpoint.parse(
+        "[{\"Endpoints\":{\"docker\":{\"Host\":\"unix:///var/run/docker.sock\"}}}]")
+        == "unix:///var/run/docker.sock")
+    #expect(throws: DockerStorageError.self) {
+      try DockerLocalEndpoint.parse(
+        "[{\"Endpoints\":{\"docker\":{\"Host\":\"ssh://production\"}}}]")
+    }
+    #expect(
+      DockerStorageService.cleanupArguments(host: "unix:///var/run/docker.sock")
+        == [
+          ["--host", "unix:///var/run/docker.sock", "image", "prune", "--all", "--force"],
+          ["--host", "unix:///var/run/docker.sock", "builder", "prune", "--all", "--force"],
+        ])
+  }
+
   @Test
   func parsesDockerSizes() {
     #expect(DockerByteParser.bytes("0B") == 0)

@@ -528,7 +528,7 @@ struct DockerStorageView: View {
         BlitzConfirmation(
           title: "Delete unused Docker images and build cache?",
           message:
-            "\(ByteText.full(reclaimable)) of unused images and build cache will be deleted permanently. Containers and volumes will not be deleted.",
+            "\(ByteText.full(reclaimable)) of unused images and build cache on this Mac will be deleted permanently. Containers, volumes, and remote Docker engines will not be changed.",
           confirmTitle: "Delete unused images and cache",
           onConfirm: {
             showsConfirmation = false

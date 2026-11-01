@@ -4,6 +4,42 @@ import Testing
 @testable import BlitzClean
 
 struct PortProbeTests {
+  @Test func restrictsProbeAndIconDestinationsToTheSameLoopbackSocket() throws {
+    let page = try #require(URL(string: "http://127.0.0.1:3000/"))
+    let next = try #require(URL(string: "http://127.0.0.1:3000/next"))
+    #expect(LoopbackProbePolicy.allows(page))
+    #expect(LoopbackProbePolicy.sameSocket(page, next))
+    #expect(LoopbackProbePolicy.allows(try #require(URL(string: "https://[::1]:443/icon.png"))))
+    for value in [
+      "https://example.com/icon.png", "http://127.0.0.1.example.com/", "http://localhost:3000/",
+      "http://192.168.1.1/", "file:///etc/passwd", "http://user:password@127.0.0.1:3000/",
+      "http://127.0.0.1:3001/",
+    ] {
+      let destination = try #require(URL(string: value))
+      #expect(!LoopbackProbePolicy.sameSocket(page, destination))
+    }
+  }
+
+  @Test func refusesExternalRedirectBeforeFollowingIt() throws {
+    let delegate = LoopbackRedirectDelegate()
+    let session = URLSession(configuration: .ephemeral)
+    defer { session.invalidateAndCancel() }
+    let source = try #require(URL(string: "http://127.0.0.1:3000/"))
+    let task = session.dataTask(with: source)
+    let response = try #require(
+      HTTPURLResponse(url: source, statusCode: 302, httpVersion: nil, headerFields: nil))
+    for destination in [
+      "https://example.com/", "http://127.0.0.1:3001/", "http://127.0.0.1:3000/next",
+    ] {
+      let request = URLRequest(url: try #require(URL(string: destination)))
+      delegate.urlSession(
+        session, task: task, willPerformHTTPRedirection: response, newRequest: request
+      ) { redirected in
+        #expect((redirected != nil) == destination.hasSuffix("/next"))
+      }
+    }
+  }
+
   @Test
   func extractsTitleAndDecodesEntities() {
     let html = "<html><head><title>\n  Alarya &mdash; Elle &amp; lui </title></head></html>"

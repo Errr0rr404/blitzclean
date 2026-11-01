@@ -71,7 +71,7 @@ struct ResourcePlot: View {
       plot.background {
         VStack {
           ForEach(0..<3) { index in
-            Rectangle().fill(BlitzUI.panelStroke).frame(height: 0.5)
+            Rectangle().fill(BlitzUI.mint.opacity(0.10)).frame(height: 0.5)
             if index < 2 { Spacer() }
           }
         }.accessibilityHidden(true)
@@ -98,7 +98,7 @@ struct HistoryRangePicker: View {
         }
       }
     )
-    .frame(width: 286)
+    .frame(width: 318)
     .help("CPU and RAM history is stored locally for seven days")
   }
 }

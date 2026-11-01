@@ -9,11 +9,17 @@ struct CPUControlView: View {
     ScrollView {
       VStack(alignment: .leading, spacing: 20) {
         VStack(alignment: .leading, spacing: 18) {
-          HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Text(monitor.snapshot.cpuUsage.map(PercentText.make) ?? "—")
-              .font(BlitzUI.valueFont).monospacedDigit()
-            Text("\(ProcessInfo.processInfo.activeProcessorCount) cores")
-              .font(BlitzType.body).foregroundStyle(BlitzUI.secondaryText)
+          HStack(alignment: .center, spacing: 12) {
+            UsageDial(
+              ratio: monitor.snapshot.cpuUsage,
+              tone: monitor.snapshot.cpuUsage.map(MenuBarTones.cpu) ?? .neutral, size: 44)
+            VStack(alignment: .leading, spacing: 2) {
+              Text("CPU").font(BlitzType.rowTitle)
+              Text(monitor.snapshot.cpuUsage.map(PercentText.make) ?? "—")
+                .font(BlitzUI.valueFont).monospacedDigit()
+              Text("\(ProcessInfo.processInfo.activeProcessorCount) cores")
+                .font(BlitzType.caption).foregroundStyle(BlitzUI.secondaryText)
+            }
             Spacer()
             HistoryRangePicker(seconds: $seconds)
           }

@@ -2,50 +2,87 @@ import AppKit
 import SwiftUI
 
 enum BlitzType {
-  static let largeTitle = Font.system(size: 24, weight: .semibold)
-  static let title = Font.system(size: 17, weight: .semibold)
-  static let headline = Font.system(size: 15, weight: .semibold)
-  static let section = Font.system(size: 13, weight: .semibold)
-  static let callout = Font.system(size: 13)
-  static let rowTitle = Font.system(size: 13, weight: .medium)
-  static let body = Font.system(size: 12)
-  static let label = Font.system(size: 12, weight: .medium)
-  static let caption = Font.system(size: 11)
-  static let captionEmphasis = Font.system(size: 11, weight: .medium)
-  static let numeric = Font.system(size: 12).monospacedDigit()
+  /// Avenir Next, the same face Usage Monitor uses for the panel.
+  static func face(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
+    let name: String
+    if weight == .ultraLight || weight == .thin || weight == .light {
+      name = "AvenirNext-UltraLight"
+    } else if weight == .medium {
+      name = "AvenirNext-Medium"
+    } else if weight == .semibold {
+      name = "AvenirNext-DemiBold"
+    } else if weight == .bold {
+      name = "AvenirNext-Bold"
+    } else if weight == .heavy || weight == .black {
+      name = "AvenirNext-Heavy"
+    } else {
+      name = "AvenirNext-Regular"
+    }
+    return .custom(name, size: size)
+  }
+
+  static let largeTitle = face(13, .bold)
+  static let title = face(15, .semibold)
+  static let headline = face(13, .semibold)
+  static let section = face(13, .semibold)
+  static let callout = face(13)
+  static let rowTitle = face(12, .semibold)
+  static let body = face(12)
+  static let label = face(12, .medium)
+  static let caption = face(11)
+  static let captionEmphasis = face(11, .medium)
+  static let numeric = Font.system(size: 12, weight: .medium, design: .monospaced)
+  /// Tracked uppercase group label, matching Usage Monitor's service names.
+  static let kicker = Font.system(size: 11, weight: .medium, design: .monospaced)
 }
 
 enum BlitzUI {
-  static let mint = Color(red: 0.09, green: 1.0, blue: 0.65)
+  /// Ion accent from Usage Monitor. The property keeps the historical name `mint`.
+  static let mint = Color(red: 94 / 255, green: 200 / 255, blue: 255 / 255)
   static let lavender = mint
-  static let warning = Color(red: 1.0, green: 0.72, blue: 0.22)
-  static let recordRed = Color(red: 1.0, green: 0.27, blue: 0.27)
-  static let canvasBackground = Color(red: 0.035, green: 0.035, blue: 0.043)
-  static let panelBackground = Color(white: 0.105)
+  static let warning = Color(red: 255 / 255, green: 177 / 255, blue: 90 / 255)
+  static let recordRed = Color(red: 255 / 255, green: 107 / 255, blue: 107 / 255)
+  static let canvasBackground = Color(red: 7 / 255, green: 11 / 255, blue: 16 / 255)
+  static let panelBackground = Color(red: 12 / 255, green: 18 / 255, blue: 24 / 255)
   static let sidebarBackground = panelBackground
-  static let menuFill = Color(white: 0.13)
-  static let panelStroke = Color.white.opacity(0.10)
-  static let separator = Color.white.opacity(0.08)
-  static let cardFill = Color.white.opacity(0.035)
-  static let quietFill = Color.white.opacity(0.045)
-  static let controlFill = Color.white.opacity(0.055)
-  static let hoverFill = Color.white.opacity(0.075)
-  static let selectedFill = Color.white.opacity(0.10)
-  static let strongFill = Color.white.opacity(0.16)
-  static let strongStroke = Color.white.opacity(0.22)
-  static let primaryText = Color.white.opacity(0.92)
-  static let supportingText = Color.white.opacity(0.72)
-  static let secondaryText = Color.white.opacity(0.56)
-  static let tertiaryText = Color.white.opacity(0.38)
+  static let menuFill = Color(red: 10 / 255, green: 14 / 255, blue: 18 / 255)
+  static let panelStroke = Color(red: 94 / 255, green: 200 / 255, blue: 255 / 255).opacity(0.18)
+  static let separator = panelStroke
+  static let track = Color(red: 94 / 255, green: 200 / 255, blue: 255 / 255).opacity(0.16)
+  static let cardFill = Color(red: 94 / 255, green: 200 / 255, blue: 255 / 255).opacity(0.045)
+  static let quietFill = Color(red: 94 / 255, green: 200 / 255, blue: 255 / 255).opacity(0.06)
+  static let controlFill = panelBackground
+  static let hoverFill = Color(red: 94 / 255, green: 200 / 255, blue: 255 / 255).opacity(0.12)
+  static let selectedFill = Color(red: 94 / 255, green: 200 / 255, blue: 255 / 255).opacity(0.16)
+  static let strongFill = Color(red: 94 / 255, green: 200 / 255, blue: 255 / 255).opacity(0.22)
+  static let strongStroke = panelStroke
+  static let primaryText = Color(red: 231 / 255, green: 246 / 255, blue: 255 / 255)
+  static let supportingText = Color(red: 186 / 255, green: 214 / 255, blue: 230 / 255)
+  static let secondaryText = Color(red: 138 / 255, green: 160 / 255, blue: 179 / 255)
+  static let tertiaryText = Color(red: 138 / 255, green: 160 / 255, blue: 179 / 255).opacity(0.62)
   static let controlRadius: CGFloat = 8
-  static let cardRadius: CGFloat = 12
+  static let cardRadius: CGFloat = 10
   static let pagePadding: CGFloat = 28
   static let toolbarHeight: CGFloat = 52
   static let titleFont = BlitzType.largeTitle
-  static let valueFont = Font.system(size: 32, weight: .medium)
+  static let valueFont = BlitzType.face(28, .medium)
+  /// Near-black used on top of the accent fill, matching Usage Monitor's ground.
+  static let onAccent = Color(red: 7 / 255, green: 11 / 255, blue: 16 / 255)
 
   static func sectionLabel(_ title: String) -> some View {
-    Text(title).font(BlitzType.captionEmphasis).foregroundStyle(secondaryText).lineLimit(1)
+    Text(title).font(BlitzType.kicker).tracking(1.76).textCase(.uppercase)
+      .foregroundStyle(mint).lineLimit(1)
+  }
+}
+
+/// Uppercase wordmark shared by the sidebar, page titles, and the menu-bar panel.
+struct BlitzWordmark: View {
+  var title: String = AppBrand.name
+  var size: CGFloat = 12
+
+  var body: some View {
+    Text(title).font(BlitzType.face(size, .bold)).tracking(size * 0.06).textCase(.uppercase)
+      .foregroundStyle(BlitzUI.primaryText).lineLimit(1)
   }
 }
 
@@ -92,7 +129,7 @@ struct BlitzButtonStyle: ButtonStyle {
 
   func makeBody(configuration: Configuration) -> some View {
     configuration.label
-      .font(.system(size: BlitzControlMetrics.fontSize(controlSize), weight: .medium))
+      .font(BlitzType.face(BlitzControlMetrics.fontSize(controlSize), .medium))
       .lineLimit(1)
       .symbolRenderingMode(.monochrome)
       .padding(.horizontal, BlitzControlMetrics.horizontalPadding(controlSize))
@@ -102,7 +139,7 @@ struct BlitzButtonStyle: ButtonStyle {
       .background(fill, in: RoundedRectangle(cornerRadius: BlitzUI.controlRadius))
       .overlay {
         RoundedRectangle(cornerRadius: BlitzUI.controlRadius)
-          .strokeBorder(emphasis == .secondary ? BlitzUI.panelStroke : .clear, lineWidth: 1)
+          .strokeBorder(stroke, lineWidth: 1)
           .allowsHitTesting(false)
       }
       .opacity(isEnabled ? (configuration.isPressed ? 0.76 : 1) : 0.4)
@@ -111,21 +148,30 @@ struct BlitzButtonStyle: ButtonStyle {
       .blitzPointingHand()
   }
 
+  private var stroke: Color {
+    switch emphasis {
+    case .secondary: BlitzUI.panelStroke
+    case .emphasized: BlitzUI.mint
+    case .accent, .quiet: .clear
+    }
+  }
+
   private func foreground(_ role: ButtonRole?) -> Color {
     if role == .destructive, emphasis != .accent { return BlitzUI.recordRed }
     switch emphasis {
-    case .accent, .emphasized: return .black.opacity(0.88)
-    case .secondary: return BlitzUI.primaryText
-    case .quiet: return isHovered && isEnabled ? BlitzUI.primaryText : BlitzUI.secondaryText
+    case .accent: return BlitzUI.onAccent
+    case .emphasized: return BlitzUI.mint
+    case .secondary, .quiet:
+      return isHovered && isEnabled ? BlitzUI.primaryText : BlitzUI.secondaryText
     }
   }
 
   private var fill: Color {
     let hovered = isHovered && isEnabled
     switch emphasis {
-    case .accent: return hovered ? BlitzUI.mint.opacity(0.9) : BlitzUI.mint
-    case .emphasized: return hovered ? .white : BlitzUI.primaryText
-    case .secondary: return hovered ? BlitzUI.hoverFill : BlitzUI.controlFill
+    case .accent: return hovered ? BlitzUI.mint.opacity(0.88) : BlitzUI.mint
+    case .emphasized: return hovered ? BlitzUI.hoverFill : .clear
+    case .secondary: return hovered ? BlitzUI.hoverFill : .clear
     case .quiet: return hovered ? BlitzUI.quietFill : .clear
     }
   }
@@ -155,7 +201,18 @@ extension View {
 
   func blitzTheme() -> some View {
     self
-      .background(BlitzUI.canvasBackground.ignoresSafeArea())
+      .background {
+        ZStack {
+          BlitzUI.canvasBackground
+          RadialGradient(
+            colors: [BlitzUI.mint.opacity(0.12), .clear],
+            center: UnitPoint(x: 1, y: 0),
+            startRadius: 20,
+            endRadius: 640
+          )
+        }
+        .ignoresSafeArea()
+      }
       .foregroundStyle(BlitzUI.primaryText)
       .tint(BlitzUI.mint)
       .buttonStyle(BlitzButtonStyle(.secondary))
@@ -171,11 +228,22 @@ struct BlitzSelectionButtonStyle: ButtonStyle {
 
   func makeBody(configuration: Configuration) -> some View {
     configuration.label
-      .foregroundStyle(isSelected ? BlitzUI.primaryText : BlitzUI.secondaryText)
+      .foregroundStyle(
+        isSelected
+          ? BlitzUI.onAccent
+          : isHovered && isEnabled ? BlitzUI.primaryText : BlitzUI.secondaryText
+      )
       .background(
-        isSelected ? BlitzUI.selectedFill : isHovered ? BlitzUI.quietFill : .clear,
+        isSelected ? BlitzUI.mint : isHovered && isEnabled ? BlitzUI.hoverFill : .clear,
         in: RoundedRectangle(cornerRadius: 6)
       )
+      .overlay {
+        if !isSelected {
+          RoundedRectangle(cornerRadius: 6)
+            .strokeBorder(BlitzUI.panelStroke, lineWidth: 1)
+            .allowsHitTesting(false)
+        }
+      }
       .contentShape(RoundedRectangle(cornerRadius: 6))
       .opacity(isEnabled ? configuration.isPressed ? 0.76 : 1 : 0.4)
       .onHover { isHovered = $0 }
@@ -184,10 +252,7 @@ struct BlitzSelectionButtonStyle: ButtonStyle {
 }
 
 extension View {
-  func blitzChipGroup() -> some View {
-    padding(2)
-      .background(BlitzUI.controlFill, in: RoundedRectangle(cornerRadius: BlitzUI.controlRadius))
-  }
+  func blitzChipGroup() -> some View { self }
 }
 
 struct BlitzSegmentedPicker<Value: Hashable>: View {
@@ -196,13 +261,13 @@ struct BlitzSegmentedPicker<Value: Hashable>: View {
   @Binding var selection: Value
   let label: (Value) -> String
   var body: some View {
-    HStack(spacing: 2) {
+    HStack(spacing: 4) {
       ForEach(options, id: \.self) { value in
         Button {
           selection = value
         } label: {
-          Text(label(value)).font(BlitzType.label).lineLimit(1)
-            .frame(maxWidth: .infinity, minHeight: 30).padding(.horizontal, 10)
+          Text(label(value)).font(BlitzType.label).lineLimit(1).minimumScaleFactor(0.8)
+            .padding(.horizontal, 6).frame(maxWidth: .infinity, minHeight: 28)
             .contentShape(Rectangle())
         }.buttonStyle(BlitzSelectionButtonStyle(isSelected: value == selection))
           .accessibilityAddTraits(selection == value ? .isSelected : [])
@@ -281,10 +346,9 @@ struct BlitzPageHeader<Actions: View>: View {
   var body: some View {
     HStack(alignment: .center, spacing: 16) {
       VStack(alignment: .leading, spacing: 3) {
-        Text(title).font(BlitzType.largeTitle).tracking(-0.4)
-          .foregroundStyle(BlitzUI.primaryText)
+        BlitzWordmark(title: title, size: 13)
         if let detail {
-          Text(detail).font(BlitzType.body).foregroundStyle(BlitzUI.secondaryText)
+          Text(detail).font(BlitzType.caption).foregroundStyle(BlitzUI.secondaryText)
             .lineLimit(1)
         }
       }
@@ -292,8 +356,8 @@ struct BlitzPageHeader<Actions: View>: View {
       actions()
     }
     .padding(.horizontal, BlitzUI.pagePadding)
-    .padding(.top, 20)
-    .padding(.bottom, 18)
+    .padding(.top, 16)
+    .padding(.bottom, 12)
     .background {
       Color.clear.contentShape(Rectangle()).blitzWindowDrag()
     }
@@ -613,7 +677,7 @@ private struct BlitzToggleBody: View {
     case .switch:
       Capsule().fill(on ? BlitzUI.mint : hovered ? BlitzUI.strongFill : BlitzUI.selectedFill)
         .overlay(alignment: on ? .trailing : .leading) {
-          Circle().fill(on ? Color.black.opacity(0.85) : BlitzUI.primaryText)
+          Circle().fill(on ? BlitzUI.onAccent : BlitzUI.primaryText)
             .frame(width: 16, height: 16).padding(3)
         }
         .frame(width: 38, height: 22)
@@ -626,7 +690,7 @@ private struct BlitzToggleBody: View {
         }
         .overlay {
           Image(systemName: "checkmark").font(.system(size: 10, weight: .bold))
-            .foregroundStyle(.black.opacity(0.85)).opacity(on ? 1 : 0)
+            .foregroundStyle(BlitzUI.onAccent).opacity(on ? 1 : 0)
         }
         .frame(width: 18, height: 18)
     }

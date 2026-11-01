@@ -77,7 +77,15 @@ Installed iOS runtimes stay.
 
 ### Remove again
 
-See when rebuildable folders grow back. Activity and file checks run again before each removal.
+See when rebuildable folders grow back. Before a folder is deleted again, BlitzClean checks that it is
+still the same folder on the internal disk, that Keep running is off, that no file is open, and that
+Git is not tracking anything inside it. Build and cache folders are kept when they contain a symbolic
+link or change during that check. Dependency folders still allow the links package managers create,
+and they still need a project lockfile and an idle project. The pnpm store is pruned, not deleted.
+
+Docker cleanup talks only to a local Unix socket. A remote context, or a `DOCKER_HOST` value that is
+not a local socket, is rejected. The review still removes unused local images and unused build cache,
+and it still leaves containers and volumes in place.
 
 ### Measuring folders
 

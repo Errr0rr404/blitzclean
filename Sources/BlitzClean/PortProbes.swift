@@ -45,6 +45,38 @@ struct PortProbe: Equatable, Sendable {
   }
 }
 
+/// Probes stay on one literal loopback socket, including redirects and icons.
+enum LoopbackProbePolicy {
+  static func allows(_ url: URL) -> Bool {
+    guard ["http", "https"].contains(url.scheme?.lowercased() ?? ""),
+      url.user == nil, url.password == nil
+    else { return false }
+    return ["127.0.0.1", "::1", "[::1]"].contains(url.host?.lowercased() ?? "")
+  }
+
+  /// A redirect or icon may stay on the probed socket. It may not change host or port.
+  static func sameSocket(_ source: URL, _ destination: URL) -> Bool {
+    allows(source) && allows(destination) && source.port == destination.port
+      && source.host?.lowercased() == destination.host?.lowercased()
+  }
+}
+
+final class LoopbackRedirectDelegate: NSObject, URLSessionTaskDelegate {
+  func urlSession(
+    _ session: URLSession, task: URLSessionTask,
+    willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest,
+    completionHandler: @escaping (URLRequest?) -> Void
+  ) {
+    guard let source = task.originalRequest?.url, let destination = request.url,
+      LoopbackProbePolicy.sameSocket(source, destination)
+    else {
+      completionHandler(nil)
+      return
+    }
+    completionHandler(request)
+  }
+}
+
 enum HTMLMetadataParser {
   static func title(_ html: String) -> String? {
     let candidates = [
@@ -145,34 +177,38 @@ struct PortProber: Sendable {
     configuration.timeoutIntervalForResource = 4
     configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
     configuration.httpAdditionalHeaders = ["Accept": "text/html,application/json;q=0.9,*/*;q=0.5"]
-    session = URLSession(configuration: configuration)
+    configuration.connectionProxyDictionary = [:]
+    session = URLSession(
+      configuration: configuration, delegate: LoopbackRedirectDelegate(), delegateQueue: nil)
   }
 
   func probe(port: Int) async -> PortProbe {
-    guard let url = URL(string: "http://localhost:\(port)/") else {
+    guard let url = URL(string: "http://127.0.0.1:\(port)/"), LoopbackProbePolicy.allows(url) else {
       return silent(port)
     }
 
     guard let (data, response) = try? await session.data(from: url),
-      let http = response as? HTTPURLResponse
+      let http = response as? HTTPURLResponse,
+      let finalURL = http.url, LoopbackProbePolicy.sameSocket(url, finalURL)
     else {
       return silent(port)
     }
 
     let contentType = (http.value(forHTTPHeaderField: "Content-Type") ?? "").lowercased()
     let body = String(decoding: data.prefix(256_000), as: UTF8.self)
-    let finalURL = http.url?.absoluteString
+    let finalAddress = finalURL.absoluteString
 
     if contentType.contains("json") {
       return PortProbe(
-        port: port, kind: .api, title: nil, faviconData: nil, finalURL: finalURL, probedAt: .now)
+        port: port, kind: .api, title: nil, faviconData: nil, finalURL: finalAddress,
+        probedAt: .now)
     }
 
     if contentType.contains("html") || body.range(of: "<html", options: .caseInsensitive) != nil {
       let title = HTMLMetadataParser.title(body)
-      let favicon = await favicon(base: http.url ?? url, html: body)
+      let favicon = await favicon(base: finalURL, html: body)
       return PortProbe(
-        port: port, kind: .web, title: title, faviconData: favicon, finalURL: finalURL,
+        port: port, kind: .web, title: title, faviconData: favicon, finalURL: finalAddress,
         probedAt: .now)
     }
 
@@ -184,7 +220,7 @@ struct PortProber: Sendable {
       kind: .text,
       title: firstLine?.isEmpty == false ? firstLine : nil,
       faviconData: nil,
-      finalURL: finalURL,
+      finalURL: finalAddress,
       probedAt: .now
     )
   }
@@ -196,18 +232,23 @@ struct PortProber: Sendable {
         return dataURIPayload(href)
       }
 
-      if let resolved = URL(string: href, relativeTo: base)?.absoluteURL {
+      if let resolved = URL(string: href, relativeTo: base)?.absoluteURL,
+        LoopbackProbePolicy.sameSocket(base, resolved)
+      {
         candidates.append(resolved)
       }
     }
 
-    if let root = URL(string: "/favicon.ico", relativeTo: base)?.absoluteURL {
+    if let root = URL(string: "/favicon.ico", relativeTo: base)?.absoluteURL,
+      LoopbackProbePolicy.sameSocket(base, root)
+    {
       candidates.append(root)
     }
 
     for candidate in candidates {
       guard let (data, response) = try? await session.data(from: candidate),
         let http = response as? HTTPURLResponse, http.statusCode == 200,
+        let received = http.url, LoopbackProbePolicy.sameSocket(candidate, received),
         data.count > 16, data.count < 2_000_000,
         NSImage(data: data) != nil
       else {

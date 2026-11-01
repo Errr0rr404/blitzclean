@@ -35,12 +35,12 @@ extension View {
             Color.clear.contentShape(Rectangle()).onTapGesture { presentation.dismiss() }
             presentation.content.frame(width: width)
               .background(BlitzUI.menuFill)
-              .clipShape(RoundedRectangle(cornerRadius: BlitzUI.cardRadius))
+              .clipShape(RoundedRectangle(cornerRadius: 8))
               .overlay {
-                RoundedRectangle(cornerRadius: BlitzUI.cardRadius)
+                RoundedRectangle(cornerRadius: 8)
                   .strokeBorder(BlitzUI.panelStroke)
               }
-              .shadow(color: .black.opacity(0.28), radius: 12, y: 6)
+              .shadow(color: .black.opacity(0.45), radius: 16, y: 8)
               .offset(x: x, y: y)
           }.onExitCommand { presentation.dismiss() }
         }
@@ -58,7 +58,7 @@ struct BlitzConfirmation: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
-      Text(title).font(.system(size: 14, weight: .semibold))
+      Text(title).font(BlitzType.headline)
       if message.count > 320 || message.split(separator: "\n").count > 4 {
         ScrollView { detail }.frame(height: 100)
       } else {
@@ -75,7 +75,7 @@ struct BlitzConfirmation: View {
   }
 
   private var detail: some View {
-    Text(message).font(.system(size: 12)).foregroundStyle(.secondary)
+    Text(message).font(BlitzType.body).foregroundStyle(BlitzUI.secondaryText)
       .frame(maxWidth: .infinity, alignment: .leading).textSelection(.enabled)
   }
 }

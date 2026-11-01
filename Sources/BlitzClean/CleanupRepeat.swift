@@ -172,6 +172,7 @@ struct RegrowActivity: Sendable {
 
 enum RegrowCleanError: LocalizedError, Equatable {
   case moved
+  case linked
   case busy(String)
   case unverified
   case failed(String)
@@ -179,6 +180,7 @@ enum RegrowCleanError: LocalizedError, Equatable {
   var errorDescription: String? {
     switch self {
     case .moved: "It moved, became a link, or is on another disk. Nothing was removed."
+    case .linked: "This folder contains a symbolic link. Nothing was removed."
     case .busy(let reason): "\(reason). Stop it first; nothing was removed."
     case .unverified: "Running processes could not be checked. Nothing was removed."
     case .failed(let reason): reason
@@ -191,7 +193,7 @@ enum RegrowCleaner {
     var info = stat()
     guard lstat(path, &info) == 0, info.st_mode & S_IFMT == S_IFDIR else { return nil }
     let result = CleanupActivity.runCommand(
-      .init(executable: "/usr/bin/du", arguments: ["-sk", path], timeout: 60))
+      .init(executable: "/usr/bin/du", arguments: ["-xsk", path], timeout: 60))
     guard
       let kilobytes = result.output.split(whereSeparator: \.isWhitespace).first.flatMap({
         UInt64($0)
@@ -207,15 +209,19 @@ enum RegrowCleaner {
       let bytes = size(target.path)
     else { throw RegrowCleanError.moved }
     guard let activity = RegrowActivity.read() else { throw RegrowCleanError.unverified }
-    if let reason = activity.blocker(
-      target, projectRoot: RegrowCatalog.projectRoot(target, home: home))
-    {
+    let projectRoot = RegrowCatalog.projectRoot(target, home: home)
+    if let reason = activity.blocker(target, projectRoot: projectRoot) {
       throw RegrowCleanError.busy(reason)
+    }
+    guard !WorkspacePreferences.isKeptRunning(projectRoot) else {
+      throw RegrowCleanError.busy("Keep running is enabled")
     }
     let before = CleanupVolume.read(target.path)
     switch target.recipe {
-    case .folder, .dependencies:
-      try FileManager.default.removeItem(atPath: target.path)
+    case .folder:
+      try commitFolder(target.path)
+    case .dependencies:
+      try commitDependencies(target)
     case .pnpmPrune:
       guard let pnpm = pnpmExecutable(home: home) else {
         throw RegrowCleanError.failed("pnpm was not found. Run pnpm store prune in Terminal.")
@@ -232,6 +238,96 @@ enum RegrowCleaner {
       id: UUID().uuidString, date: .now, title: "Removed again: \(target.title)",
       paths: [target.path], before: before, after: before.flatMap { CleanupVolume.read($0.path) },
       bytes: target.recipe == .pnpmPrune ? nil : bytes)
+  }
+
+  /// Build and cache folders are refused when they contain a link or change during the check.
+  static func folderTree(_ path: String) throws -> CacheTree {
+    guard DirectoryIdentity.read(path) != nil else { throw RegrowCleanError.moved }
+    let tree: CacheTree
+    do {
+      tree = try CacheCleaner.tree(.init(path: path, deadline: .now.addingTimeInterval(15)))
+    } catch CacheCleanError.outsideRoot {
+      throw RegrowCleanError.linked
+    }
+    try assertUntracked(path)
+    try assertClosed(path)
+    return tree
+  }
+
+  /// Dependency folders keep package-manager links, and still need a lockfile and an idle project.
+  static func reviewDependencies(_ target: RegrowTarget) throws -> DirectoryIdentity {
+    guard target.path.hasSuffix("/node_modules"),
+      let identity = DirectoryIdentity.read(target.path)
+    else { throw RegrowCleanError.moved }
+    let context = NodeModulesResolver.resolve(
+      NodeModulesResolutionRequest(nodeModulesPath: target.path, fileManager: .default))
+    let parent = URL(fileURLWithPath: target.path).deletingLastPathComponent().path
+    guard context.origin == .project, context.cleanupTargetPath == target.path,
+      context.projectRootPath == parent, context.manifestPath != nil, context.lockfilePath != nil
+    else { throw RegrowCleanError.busy("Dependencies need a project and a lockfile") }
+    guard !WorkspacePreferences.isKeptRunning(parent) else {
+      throw RegrowCleanError.busy("Keep running is enabled")
+    }
+    guard let active = CleanupActivity.workingDirectories() else {
+      throw RegrowCleanError.unverified
+    }
+    if case .blocked(let reason) = NodeModulesSafety.evaluate(
+      .init(context: context, activeWorkingDirectories: active, fileManager: .default))
+    {
+      throw RegrowCleanError.busy(reason)
+    }
+    try assertUntracked(target.path)
+    try assertClosed(target.path)
+    guard DirectoryIdentity.read(target.path) == identity else { throw CacheCleanError.changed }
+    return identity
+  }
+
+  private static func commitFolder(_ path: String) throws {
+    let reviewed = try folderTree(path)
+    guard try folderTree(path) == reviewed, ReviewFile.canonicalPath(path) == path else {
+      throw CacheCleanError.changed
+    }
+    try FileManager.default.removeItem(atPath: path)
+  }
+
+  private static func commitDependencies(_ target: RegrowTarget) throws {
+    let identity = try reviewDependencies(target)
+    guard DirectoryIdentity.read(target.path) == identity,
+      ReviewFile.canonicalPath(target.path) == target.path
+    else { throw CacheCleanError.changed }
+    try FileManager.default.removeItem(atPath: target.path)
+  }
+
+  private static func assertUntracked(_ path: String) throws {
+    let directory = URL(fileURLWithPath: path).deletingLastPathComponent().path
+    let repository = DeveloperCommand.git(
+      .init(directory: directory, arguments: ["rev-parse", "--show-toplevel"]))
+    if repository.status == 0 {
+      let tracked = DeveloperCommand.git(
+        .init(directory: directory, arguments: ["ls-files", "-z", "--", path]))
+      guard tracked.status == 0, tracked.output.isEmpty else {
+        throw RegrowCleanError.busy("Folder contains tracked files or Git could not verify them")
+      }
+      return
+    }
+    var ancestor = URL(fileURLWithPath: directory)
+    while ancestor.path != "/" {
+      if FileManager.default.fileExists(atPath: ancestor.appendingPathComponent(".git").path) {
+        throw RegrowCleanError.unverified
+      }
+      let parent = ancestor.deletingLastPathComponent()
+      if parent.path == ancestor.path { break }
+      ancestor = parent
+    }
+  }
+
+  private static func assertClosed(_ path: String) throws {
+    let handles = CleanupActivity.command(["-nP", "-Fpcn", "+D", path])
+    guard handles.status == 1, handles.output.isEmpty else {
+      // lsof exits 1 both when nothing is open and when it prints records after a warning.
+      throw handles.output.isEmpty
+        ? RegrowCleanError.unverified : RegrowCleanError.busy("A file in this folder is open")
+    }
   }
 
   private static func pnpmExecutable(home: String) -> String? {

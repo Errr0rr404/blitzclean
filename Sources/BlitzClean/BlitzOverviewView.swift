@@ -102,7 +102,7 @@ struct BlitzOverviewView: View {
         }
         if let error = monitor.historyPersistenceError {
           Label(error, systemImage: "exclamationmark.triangle")
-            .font(.callout).foregroundStyle(.orange)
+            .font(BlitzType.callout).foregroundStyle(BlitzUI.warning)
         }
       }.padding(BlitzUI.pagePadding)
     }
@@ -131,11 +131,7 @@ struct BlitzOverviewView: View {
     let running = processes.threads.filter { !$0.isPaused }
     let ram = processes.threads.reduce(0) { $0 + $1.memoryBytes }
     VStack(alignment: .leading, spacing: 10) {
-      HStack(spacing: 6) {
-        Text("AI threads").font(BlitzType.section)
-        Text("\(processes.threads.count)").font(BlitzType.caption).monospacedDigit()
-          .foregroundStyle(BlitzUI.tertiaryText)
-        Spacer()
+      BlitzSectionHeader(title: "AI threads", count: processes.threads.count) {
         if ram > 0 {
           Text(ByteText.full(ram)).font(BlitzType.numeric).foregroundStyle(BlitzUI.secondaryText)
         }
@@ -205,16 +201,22 @@ private struct OverviewResourceCard: View {
     Button(action: action) { card }.buttonStyle(BlitzCardButtonStyle()).help("Open \(title)")
   }
 
+  private var ratio: Double? {
+    guard let sample = samples.last else { return nil }
+    return kind.value(sample)
+  }
+
   private var card: some View {
     VStack(alignment: .leading, spacing: 12) {
-      HStack {
-        Text(title).font(BlitzType.rowTitle)
-        Spacer()
+      HStack(alignment: .center, spacing: 10) {
+        UsageDial(ratio: ratio, tone: ratio.map(MetricTone.forUsedRatio) ?? .neutral, size: 40)
+        VStack(alignment: .leading, spacing: 2) {
+          Text(title).font(BlitzType.rowTitle)
+          Text(value).font(BlitzType.face(20, .medium)).monospacedDigit()
+          Text(detail).font(BlitzType.caption).foregroundStyle(BlitzUI.secondaryText)
+        }
+        Spacer(minLength: 8)
         BlitzChevron()
-      }
-      VStack(alignment: .leading, spacing: 4) {
-        Text(value).font(BlitzUI.valueFont).tracking(-0.8).monospacedDigit()
-        Text(detail).font(BlitzType.body).foregroundStyle(BlitzUI.secondaryText)
       }
       ResourcePlot(samples: samples, kind: kind, color: BlitzUI.mint, seconds: 300)
         .frame(height: 48)
@@ -223,7 +225,7 @@ private struct OverviewResourceCard: View {
         Spacer()
         Text("5 min")
       }.font(BlitzType.caption).monospacedDigit().foregroundStyle(BlitzUI.secondaryText)
-    }.frame(maxWidth: .infinity, alignment: .leading).panelCard(padding: 20)
+    }.frame(maxWidth: .infinity, alignment: .leading).panelCard(padding: 16)
   }
 }
 
@@ -233,18 +235,21 @@ struct StorageHero: View {
 
   var body: some View {
     Button(action: action) {
-      VStack(alignment: .leading, spacing: 16) {
-        HStack {
-          Label("Internal storage", systemImage: "internaldrive").font(BlitzType.rowTitle)
-          Spacer()
+      VStack(alignment: .leading, spacing: 14) {
+        HStack(alignment: .center, spacing: 12) {
+          UsageDial(
+            ratio: snapshot.diskTotal > 0 ? snapshot.diskUsedRatio : nil,
+            tone: MenuBarTones.disk(snapshot), size: 44)
+          VStack(alignment: .leading, spacing: 2) {
+            Text("Storage").font(BlitzType.rowTitle)
+            Text(snapshot.diskTotal > 0 ? ByteText.full(snapshot.diskAvailable) : "—")
+              .font(BlitzUI.valueFont).monospacedDigit()
+            Text("available").font(BlitzType.caption).foregroundStyle(BlitzUI.secondaryText)
+          }
+          Spacer(minLength: 8)
           BlitzChevron()
         }
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-          Text(snapshot.diskTotal > 0 ? ByteText.full(snapshot.diskAvailable) : "—")
-            .font(.system(size: 36, weight: .medium)).tracking(-1).monospacedDigit()
-          Text("available").font(BlitzType.callout).foregroundStyle(BlitzUI.secondaryText)
-        }
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
           CapacityBar(usedRatio: snapshot.diskUsedRatio, tone: MenuBarTones.disk(snapshot))
           HStack {
             Text("\(ByteText.full(snapshot.diskUsed)) used")
@@ -252,7 +257,7 @@ struct StorageHero: View {
             Text("\(ByteText.full(snapshot.diskTotal)) total")
           }.font(BlitzType.caption).foregroundStyle(BlitzUI.secondaryText).monospacedDigit()
         }
-      }.frame(maxWidth: .infinity, alignment: .leading).panelCard(padding: 20)
+      }.frame(maxWidth: .infinity, alignment: .leading).panelCard(padding: 16)
     }.buttonStyle(BlitzCardButtonStyle()).help("Open Storage")
   }
 }

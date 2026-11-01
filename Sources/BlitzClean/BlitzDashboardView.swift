@@ -131,12 +131,12 @@ struct BlitzDashboardView: View {
         }
         pageContent
       }.frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(BlitzUI.canvasBackground)
     }
     .ignoresSafeArea(.container, edges: .top)
     .toolbar(removing: .sidebarToggle)
     .navigationTitle(AppBrand.name)
     .blitzTheme()
+    .background(WindowOpacityAnchor())
     .frame(minWidth: 920, minHeight: 640)
     .blitzDropdownHost()
     .task {
@@ -202,6 +202,7 @@ private struct BlitzSidebar: View {
     VStack(alignment: .leading, spacing: 2) {
       Color.clear.frame(height: BlitzUI.toolbarHeight).contentShape(Rectangle())
         .blitzWindowDrag()
+      BlitzWordmark().padding(.horizontal, 8).padding(.bottom, 8)
       ForEach(Array(CleanPage.main.enumerated()), id: \.element) { index, page in
         item(page, shortcut: index + 1)
       }
@@ -237,8 +238,9 @@ private struct BlitzSidebar: View {
             count: missingPermissions, label: "\(missingPermissions) permissions to allow")
         }
       }.frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 8).frame(minHeight: 34)
     }
-    .blitzButton(selected ? .secondary : .quiet)
+    .buttonStyle(BlitzNavButtonStyle(isSelected: selected))
     .accessibilityAddTraits(selected ? .isSelected : [])
     if let shortcut {
       button.keyboardShortcut(KeyEquivalent(Character("\(shortcut)")), modifiers: .command)
@@ -246,6 +248,33 @@ private struct BlitzSidebar: View {
     } else {
       button.help(page.rawValue)
     }
+  }
+}
+
+private struct BlitzNavButtonStyle: ButtonStyle {
+  let isSelected: Bool
+  @Environment(\.isEnabled) private var isEnabled
+  @State private var isHovered = false
+
+  func makeBody(configuration: Configuration) -> some View {
+    configuration.label
+      .foregroundStyle(
+        isSelected
+          ? BlitzUI.mint : isHovered && isEnabled ? BlitzUI.primaryText : BlitzUI.secondaryText
+      )
+      .background(
+        isSelected ? BlitzUI.selectedFill : isHovered && isEnabled ? BlitzUI.hoverFill : .clear,
+        in: RoundedRectangle(cornerRadius: 6)
+      )
+      .overlay {
+        RoundedRectangle(cornerRadius: 6)
+          .strokeBorder(isSelected ? BlitzUI.mint : .clear, lineWidth: 1)
+          .allowsHitTesting(false)
+      }
+      .contentShape(RoundedRectangle(cornerRadius: 6))
+      .opacity(isEnabled ? configuration.isPressed ? 0.76 : 1 : 0.4)
+      .onHover { isHovered = $0 }
+      .blitzPointingHand()
   }
 }
 

@@ -13,14 +13,18 @@ resolve the user's task, use shared components, preserve consequential states, a
 - A data row has one primary action and, when necessary, `BlitzActionMenu` for secondary actions.
   A selection checkbox also counts as an interaction; selection rows use at most one other control.
 - Use `blitzRow` inside one `blitzTable` for a list. Use `panelCard` for a distinct summary or result.
-- Use `BlitzUI` and `BlitzType` for surfaces, text, accent, and spacing. They mirror BlitzRecorder's
-  `BlitzUI`/`BlitzType`: a dark-only near-black canvas, 0.105 panel surfaces, white-opacity fills and text tiers,
-  and the bright mint accent with dark text. Green identifies actions and charts; warning and destructive states
-  keep their semantic colors.
+- Use `BlitzUI` and `BlitzType` for surfaces, text, accent, and spacing. On October 6, 2026 the palette
+  changed to Usage Monitor's Ion theme so the two apps look like one family: ground `#070b10`, field `#0c1218`,
+  ink `#e7f6ff`, quiet `#8aa0b3`, accent `#5ec8ff`, heat `#ffb15a`, and stop `#ff6b6b`. `BlitzUI.mint` is that
+  cyan accent and keeps its name. Avenir Next is the text face. Group labels are tracked uppercase monospace in
+  the accent. Rings use `UsageDial`. Page titles are uppercase wordmarks. Do not restyle Usage Monitor to match
+  BlitzClean. Warning and destructive states keep heat and stop.
 - Buttons use `BlitzButtonStyle` (`.accent`, `.emphasized`, `.secondary`, `.quiet`) with BlitzRecorder's
   control metrics: 8-point radius; 24/28/34/40-point heights for mini/small/regular/large.
   Toggles use `BlitzSwitchStyle` (38 × 22 track) or `BlitzCheckboxStyle` (18-point square), never native styles.
   Status uses `BlitzStatusBadge` or `BlitzStatusDot` with a `BlitzStatusTone`; do not draw custom pills.
+- Settings includes a Transparency slider. Solid is the default. Dragging toward Clear lowers the dashboard
+  and the menu-bar panel together, down to 50% opacity, in steps of 5. The value is `appearance.transparency`.
 - The window has a hidden titlebar. `BlitzSidebar` sits on the panel surface with a 52-point drag area for the
   window controls; destinations use quiet/secondary buttons, a filled symbol when selected, and ⌘1 to ⌘6.
   Use `BlitzSegmentedPicker` for value choices and filters; the user dislikes dropdowns in settings and storage.

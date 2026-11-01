@@ -8,11 +8,10 @@ struct BlitzSectionHeader<Trailing: View>: View {
   @ViewBuilder let trailing: () -> Trailing
 
   var body: some View {
-    HStack(spacing: 6) {
-      Text(title).font(BlitzType.section)
+    HStack(spacing: 8) {
+      BlitzUI.sectionLabel(title)
       if let count {
-        Text("\(count)").font(BlitzType.caption).monospacedDigit()
-          .foregroundStyle(BlitzUI.tertiaryText)
+        Text("\(count)").font(BlitzType.numeric).foregroundStyle(BlitzUI.secondaryText)
       }
       Spacer(minLength: 8)
       trailing()
@@ -127,7 +126,9 @@ struct PageSearchBar: View {
   var body: some View {
     BlitzSearchField(title: title, text: $text)
       .padding(.horizontal, BlitzUI.pagePadding).padding(.vertical, 12)
-      .background(BlitzUI.canvasBackground)
+      .overlay(alignment: .bottom) {
+        Rectangle().fill(BlitzUI.separator).frame(height: 1).allowsHitTesting(false)
+      }
   }
 }
 
@@ -152,7 +153,7 @@ struct BlitzCountBadge: View {
 
   var body: some View {
     Text("\(count)").font(BlitzType.captionEmphasis).monospacedDigit()
-      .foregroundStyle(.black.opacity(0.88))
+      .foregroundStyle(BlitzUI.onAccent)
       .padding(.horizontal, 5).frame(minWidth: 18, minHeight: 18)
       .background(BlitzUI.warning, in: .capsule)
       .accessibilityLabel(label)
